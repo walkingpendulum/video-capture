@@ -46,7 +46,8 @@ def get_parser():
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--duration", help="Target video duration (in seconds)", default=10, type=float)
-    parser.add_argument("--fps", help="Frames per second", default=30, type=float)
+    parser.add_argument("--ifps", help="Frames per second for capturing", default=30, type=float)
+    parser.add_argument("--ofps", help="Frames per second for output video", type=float)
     parser.add_argument("--output", help="Target video path", default="video.mp4")
     parser.add_argument("--store-method", choices=["default", "memory"], default="default",
                         help="The method we will process captured images: dump to disk right after capturing (default) "
@@ -58,13 +59,14 @@ def get_parser():
     return parser
 
 
-def main(duration_sec, fps, target_video_path, storage_cls: Type[BaseImageStorage]):
+def main(duration_sec, ifps, ofps, target_video_path, storage_cls: Type[BaseImageStorage]):
     cap = cv2.VideoCapture(0)
     with storage_cls.store() as storage:
         storage: BaseImageStorage
-        for _ in count_with_exact_fps(fps=fps, duration_sec=duration_sec):
+        for _ in count_with_exact_fps(fps=ifps, duration_sec=duration_sec):
             ret, frame = cap.read()
             storage.add_image(frame)
+        print("Capturing done")
 
         cap.release()
         storage.flush_images()
@@ -73,7 +75,7 @@ def main(duration_sec, fps, target_video_path, storage_cls: Type[BaseImageStorag
             "ffmpeg",
             "-y",  # overwrite
             "-hide_banner", "-loglevel", "panic",  # verbosity
-            "-r", str(fps),
+            "-r", str(ofps),
         ]
         cmd += storage.provide_ffmpeg_infile_options()
         cmd += [target_video_path]
@@ -88,15 +90,20 @@ def cli(argv=None):
     args = get_parser().parse_args(argv)
 
     duration = args.duration
-    fps = args.fps
+    ifps = args.ifps
+    ofps = args.ofps
     output = args.output
     store_method = args.store_method
+
+    if ofps is None:
+        ofps = ifps
 
     storage_class: Type[BaseImageStorage] = image_storage_classes.get(store_method, DiskStorage)
 
     main(
         duration_sec=duration,
-        fps=fps,
+        ifps=ifps,
+        ofps=ofps,
         target_video_path=output,
         storage_cls=storage_class,
     )
