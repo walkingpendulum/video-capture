@@ -15,7 +15,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --duration DURATION   Target video duration (in seconds) (default: 10)
   --ifps IFPS           Frames per second for capturing (default: 30)
-  --ofps OFPS           Frames per second for output video (default: None)
+  --ofps OFPS           Frames per second for output video. If omitted then ifps value will be used (default: None)
   --output OUTPUT       Target video path (default: video.mp4)
   --store-method {default,memory}
                         The method we will process captured images: dump to disk right after capturing (default) or store in memory until the end and then dump all. Default method can be slower

@@ -47,7 +47,8 @@ def get_parser():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--duration", help="Target video duration (in seconds)", default=10, type=float)
     parser.add_argument("--ifps", help="Frames per second for capturing", default=30, type=float)
-    parser.add_argument("--ofps", help="Frames per second for output video", type=float)
+    parser.add_argument("--ofps", type=float,
+                        help="Frames per second for output video. If omitted then ifps value will be used")
     parser.add_argument("--output", help="Target video path", default="video.mp4")
     parser.add_argument("--store-method", choices=["default", "memory"], default="default",
                         help="The method we will process captured images: dump to disk right after capturing (default) "
