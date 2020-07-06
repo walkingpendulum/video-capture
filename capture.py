@@ -1,14 +1,21 @@
 #! /usr/bin/env python
+from __future__ import annotations
+
 import argparse
 import math
-import os
 import subprocess
-import tempfile
 import time
 import warnings
+from typing import Type
 
 import cv2
 from tqdm import trange
+
+from storages import BaseImageStorage, BufferedDiskStorage, DiskStorage
+
+image_storage_classes = {
+    "memory": BufferedDiskStorage,
+}
 
 
 def count_with_exact_fps(fps, duration_sec):
@@ -41,34 +48,36 @@ def get_parser():
     parser.add_argument("--duration", help="Target video duration (in seconds)", default=10, type=float)
     parser.add_argument("--fps", help="Frames per second", default=30, type=float)
     parser.add_argument("--output", help="Target video path", default="video.mp4")
+    parser.add_argument("--store-method", choices=["default", "memory"], default="default",
+                        help="The method we will process captured images: dump to disk right after capturing (default) "
+                             "or store in memory until the end and then dump all. Default method can be slower "
+                             "for big fps, memory buffer is faster but requires more RAM "
+                             "for big `fps * duration` values",
+                        )
 
     return parser
 
 
-def main(duration_sec, fps, target_video_path):
-    leading_zeroes_num = math.ceil(math.log10(duration_sec * fps))
-    screenshot_name_template = f"screenshot_%0{leading_zeroes_num}d.jpg"
-
+def main(duration_sec, fps, target_video_path, storage_cls: Type[BaseImageStorage]):
     cap = cv2.VideoCapture(0)
-    with tempfile.TemporaryDirectory() as dir_path:
-        g = count_with_exact_fps(fps=fps, duration_sec=duration_sec)
-        for ind in g:
+    with storage_cls.store() as storage:
+        storage: BaseImageStorage
+        for _ in count_with_exact_fps(fps=fps, duration_sec=duration_sec):
             ret, frame = cap.read()
-            screenshot_name = screenshot_name_template % ind
-            screenshot_path = os.path.join(dir_path, screenshot_name)
-            cv2.imwrite(screenshot_path, frame)
+            storage.add_image(frame)
 
         cap.release()
-        cv2.destroyAllWindows()
+        storage.flush_images()
 
         cmd = [
             "ffmpeg",
             "-y",  # overwrite
             "-hide_banner", "-loglevel", "panic",  # verbosity
-            "-i", os.path.join(dir_path, screenshot_name_template),
             "-r", str(fps),
-            target_video_path,
         ]
+        cmd += storage.provide_ffmpeg_infile_options()
+        cmd += [target_video_path]
+
         print("Call:", *cmd)
         subprocess.check_call(cmd)
 
@@ -81,11 +90,15 @@ def cli(argv=None):
     duration = args.duration
     fps = args.fps
     output = args.output
+    store_method = args.store_method
+
+    storage_class: Type[BaseImageStorage] = image_storage_classes.get(store_method, DiskStorage)
 
     main(
         duration_sec=duration,
         fps=fps,
         target_video_path=output,
+        storage_cls=storage_class,
     )
 
 
