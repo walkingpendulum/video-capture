@@ -5,7 +5,7 @@ This is an example of capturing video via opencv-python and ffmpeg.
 ### Dependencies
 * python3
 * ffmpeg (`brew install ffmpeg` for macos)
-* opencv-python and tqdm (`pip install -r requirements.txt``)
+* opencv-python and tqdm (`pip install -r requirements.txt`)
  
 ### Usage 
 ```text
