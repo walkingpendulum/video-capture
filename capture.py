@@ -39,7 +39,7 @@ def get_parser():
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--duration", help="Target video duration (in seconds)", default=10, type=float)
-    parser.add_argument("--fps", help="Frame rate per second", default=30, type=float)
+    parser.add_argument("--fps", help="Frames per second", default=30, type=float)
     parser.add_argument("--output", help="Target video path", default="video.mp4")
 
     return parser
